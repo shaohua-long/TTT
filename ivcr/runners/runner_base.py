@@ -661,6 +661,7 @@ class RunnerBase:
             self.scaler.load_state_dict(checkpoint["scaler"])
 
         self.start_epoch = checkpoint["epoch"] + 1
+        logging.info('start from {} epoch'.format(self.start_epoch))
         logging.info("Resume checkpoint from {}".format(url_or_filename))
 
     @main_process

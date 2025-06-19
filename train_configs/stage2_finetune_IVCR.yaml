@@ -77,7 +77,7 @@ run:
   
   seed: 21
   output_dir: "/home/longshaohua/IVCR_Result/Train_Result/ckpt/ivcr/first_train/"
-  # resume_ckpt_path: "/home/longshaohua/IVCR_Result/Train_Result/ckpt/ivcr/first_train/2025_01_15_23_08/checkpoint_0.pth"
+  resume_ckpt_path: "/home/longshaohua/IVCR_Result/Train_Result/ckpt/ivcr/first_train/2025_06_14_01_28/checkpoint_1.pth"
   amp: True
 
   evaluate: False

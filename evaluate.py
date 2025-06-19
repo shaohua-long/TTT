@@ -223,7 +223,6 @@ def main(args):
                 attention_mask = attn_mask.to(torch.float16),
                 max_new_tokens=1024, #注意使用llama3.2的时候一定要加上这个参数
             )
-            # print(outputs)
         output_text = model.llama_tokenizer.batch_decode(outputs, skip_special_tokens=True)[0]
         logger.info(output_text)
         all_outputs.append(output_text)

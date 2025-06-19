@@ -73,7 +73,7 @@ class Video_Instruct_Dataset(BaseDataset):
             if len(mess) <= 15:
                 self.messages_list.append(sam_mess)
         self.vid_2_name = []
-        for  vid in vid_2_name:
+        for vid in vid_2_name:
             vid_copy = vid.copy()
             if len(vid_copy) <= 7:
                 self.vid_2_name.append(vid_copy)
@@ -158,28 +158,29 @@ class Video_Instruct_Dataset(BaseDataset):
     def get_eval_data(self,index):
         # rerank_sample = self.rerank_messages[index]
         sample = self.messages_list[index]
-        new_sample = self.new_messages_list[index]
+        video_list = self.vid_2_name[index]
+        # new_sample = self.new_messages_list[index]
         video_frm_list = []
         cur_n_frms = []
         time_message_list = []
-        for message in sample:
-            if message.get('role') == 'user':
-                video_id_list = self._get_video_id(message.get('content'))
-                for v_id in video_id_list:
-                    video_path = self.vid_2_name[v_id]
+        assert len(sample) -1 == 2*len(video_list)
+        for idx,videos in enumerate(video_list):
+            if isinstance(videos, list):  #如果是视频检索，则有top10，故为list类型
+                for v in videos:
+                    video_path = os.path.join("/home/longshaohua/Dataset/ivcr_compress",v)
                     videos, msg = load_video(
-                            video_path=video_path,
-                            n_frms=self.num_frm,
-                            height=self.resize_size,
-                            width=self.resize_size,
-                            sampling=self.sample_type, return_msg=True,
-                        )
-                    videos = self.eval_transform(videos)
+                        video_path=video_path,
+                        n_frms=self.num_frm,
+                        height=self.resize_size,
+                        width=self.resize_size,
+                        sampling=self.sample_type, return_msg=True
+                    )
+                    videos = self.transform(videos)
                     video_frm_list.append(videos)
-                    cur_n_frms.append(videos.shape[1]) #统计视频帧数
-                    # 统计帧的时间戳信息并tokenizer化
+                    cur_n_frms.append(videos.shape[1])
                     all_timestamp = msg.split('sampled at')[1].replace('seconds.','').strip().split(',')
                     all_timestamp = [f'This frame is sampled at {t.strip()} second.' for t in all_timestamp]
+
                     all_timestamp = self.tokenizer(
                         all_timestamp,
                         return_tensors="pt",
@@ -188,14 +189,68 @@ class Video_Instruct_Dataset(BaseDataset):
                         truncation=True,
                     )
                     time_message_list.append(all_timestamp)
+            else:
+                video_path = os.path.join("/home/longshaohua/Dataset/ivcr_compress",videos)
+                videos, msg = load_video(
+                    video_path=video_path,
+                    n_frms=self.num_frm,
+                    height=self.resize_size,
+                    width=self.resize_size,
+                    sampling=self.sample_type, return_msg=True
+                )
+                videos = self.transform(videos)
+                video_frm_list.append(videos)
+                cur_n_frms.append(videos.shape[1])
+                all_timestamp = msg.split('sampled at')[1].replace('seconds.','').strip().split(',')
+                all_timestamp = [f'This frame is sampled at {t.strip()} second.' for t in all_timestamp]
+
+                all_timestamp = self.tokenizer(
+                    all_timestamp,
+                    return_tensors="pt",
+                    padding="longest",
+                    max_length=32,
+                    truncation=True,
+                )
+                time_message_list.append(all_timestamp)
+                flag = (idx+1)*2
+                message = sample[flag-1]
+                assert message['role'] == 'user'
+                part1, part2 = message.get('content').split("</VIDEO>")
+                sample[flag-1]['content'] = part1 + "</VIDEO>. " + msg.strip() + part2
+        # for message in sample:
+        #     if message.get('role') == 'user':
+        #         video_id_list = self._get_video_id(message.get('content'))
+        #         for v_id in video_id_list:
+        #             video_path = self.vid_2_name[v_id]
+        #             videos, msg = load_video(
+        #                     video_path=video_path,
+        #                     n_frms=self.num_frm,
+        #                     height=self.resize_size,
+        #                     width=self.resize_size,
+        #                     sampling=self.sample_type, return_msg=True,
+        #                 )
+        #             videos = self.eval_transform(videos)
+        #             video_frm_list.append(videos)
+        #             cur_n_frms.append(videos.shape[1]) #统计视频帧数
+        #             # 统计帧的时间戳信息并tokenizer化
+        #             all_timestamp = msg.split('sampled at')[1].replace('seconds.','').strip().split(',')
+        #             all_timestamp = [f'This frame is sampled at {t.strip()} second.' for t in all_timestamp]
+        #             all_timestamp = self.tokenizer(
+        #                 all_timestamp,
+        #                 return_tensors="pt",
+        #                 padding="longest",
+        #                 max_length=32,
+        #                 truncation=True,
+        #             )
+        #             time_message_list.append(all_timestamp)
                 
-                if len(video_id_list) == 1:
-                    part1, part2 = message.get('content').split("</VIDEO>")
-                    message['content'] = part1 + "</VIDEO>. " + msg.strip() + part2 #对于视频片段检索的user的内容，添加视频帧在哪秒的信息
+        #         if len(video_id_list) == 1:
+        #             part1, part2 = message.get('content').split("</VIDEO>")
+        #             message['content'] = part1 + "</VIDEO>. " + msg.strip() + part2 #对于视频片段检索的user的内容，添加视频帧在哪秒的信息
         cur_token_len = [self.num_video_query_token * math.ceil(
                     cur_n_frm / self.stride) if self.stride > 0 else self.num_video_query_token for cur_n_frm in cur_n_frms]
         
-        model_input = self.tokenizer.apply_chat_template(new_sample[:-1], tokenize=False,add_generation_prompt=True)
+        model_input = self.tokenizer.apply_chat_template(sample[:-1], tokenize=False,add_generation_prompt=True)
 
         input_ids = self.tokenizer([model_input],return_tensors = "pt",add_special_tokens=False).input_ids
         # labels = get_label(input_ids, cur_token_len,self.tokenizer)
@@ -204,7 +259,65 @@ class Video_Instruct_Dataset(BaseDataset):
             "text_input": input_ids[0],
             "timestamps": time_message_list,
         }
-
+    
+    def extract_video_numbers_first_only(self, text):
+        """
+        只返回第一个匹配的数字
+        
+        Args:
+            text (str): 输入的字符串
+        
+        Returns:
+            int or None: 第一个找到的数字，如果没有找到则返回None
+        """
+        pattern = r'(?i)\bvideo\s+(10|[1-9])\b'
+        match = re.search(pattern, text)
+        
+        if match:
+            return int(match.group(1))
+        return None
+    
+    def extract_time_ranges(self,text):
+        """
+        从文本中提取xxs-yys格式的时间段，返回[开始时间, 结束时间]的列表
+        
+        Args:
+            text (str): 输入的文本字符串
+        
+        Returns:
+            list: 包含[start_time, end_time]的列表，时间为浮点数（秒）
+        
+        Examples:
+            >>> extract_time_ranges("Query content found in video 1 at 5s-10s.")
+            [5.0, 10.0]
+            >>> extract_time_ranges("Content at 1.5s-3.2s and 10s-15.5s")
+            [1.5, 3.2, 10.0, 15.5]
+        """
+        # 正则表达式匹配 数字s-数字s 的模式
+        # \d+(?:\.\d+)? 匹配整数或浮点数
+        pattern = r'(\d+(?:\.\d+)?)s-(\d+(?:\.\d+)?)s'
+        
+        # 找到所有匹配的时间段
+        matches = re.findall(pattern, text)
+        
+        # 将匹配结果转换为浮点数并展开为一维列表
+        result = []
+        for start_str, end_str in matches:
+            result.extend([float(start_str), float(end_str)])
+        
+        return result
+    def get_gt_index(self,sample):
+        sam = sample[-1]
+        assert sam['role'] == 'assistant'
+        assert sample[-2]['role'] == 'user'
+        sam2 = sample[-2]
+        if 'Candidate videos' in sam2['content']:
+            result = self.extract_video_numbers_first_only(sam['content'])
+            return result
+        elif 'Current video' in sam2['content']:
+            result = self.extract_time_ranges(sam['content'])
+            return result
+        
     def __getitem__(self, index):
         sample = self.messages_list[index]
         video_list = self.vid_2_name[index]
@@ -315,20 +428,22 @@ class Video_Instruct_Dataset(BaseDataset):
         labels,length = get_label(input_ids, cur_token_len,self.tokenizer)
         flag_content = sample[-1].get('content')
         # target_vid = self._get_video_num(flag_content)
+        video_gt_index = self.get_gt_index(sample)
         return {
             "image": video_frm_list,
             "text_input": input_ids[0],
             "labels": labels[0],
             "length": length,
             "timestamps": time_message_list,
+            "gt_value":video_gt_index,
             # 'target_vid':target_vid
         }
     def __len__(self):
         return len(self.messages_list)
 
     def collater(self, instances):
-        input_ids, labels, timestamps,length = tuple([instance[key] for instance in instances]
-                                              for key in ("text_input", "labels", "timestamps","length"))
+        input_ids, labels, timestamps,length,gt_value = tuple([instance[key] for instance in instances]
+                                              for key in ("text_input", "labels", "timestamps","length","gt_value"))
         input_ids = torch.nn.utils.rnn.pad_sequence(
             input_ids,
             batch_first=True,
@@ -342,6 +457,7 @@ class Video_Instruct_Dataset(BaseDataset):
             input_ids=input_ids,
             labels=labels,
             length = length,
+            gt_value = gt_value,
             attention_mask=input_ids.ne(self.tokenizer.pad_token_id)
             # target_vid = target_vid,
         )

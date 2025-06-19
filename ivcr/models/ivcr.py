@@ -497,7 +497,8 @@ class IVCR(Blip2Base):
                 pre_text = self.llama_tokenizer.batch_decode(pre_logits[:,end_index-1:], skip_special_tokens=True, clean_up_tokenization_spaces=False)
                 pre_text = pre_text[0]
                 first_part = pre_text.split('.')[0]
-                if "video moment retrieval" in first_part:
+                if len(token_pos_list) == 1:
+                # if "video moment retrieval" in first_part:
                     pre_temporal = extract_time(pre_text)
                     gt_temporal = samples['gt_value'][0]
                     if pre_temporal == []:
@@ -506,7 +507,8 @@ class IVCR(Blip2Base):
                             iou_loss = iou(pre_temporal[0],gt_temporal)
                     else:
                         iou_loss = 1.
-                elif "video retrieval" in first_part:
+                elif len(token_pos_list) == 10:
+                # elif "video retrieval" in first_part:
                     iou_loss = 1.
                     second_part = pre_text.split('.')[1]
                     index = find_number(second_part)-1
