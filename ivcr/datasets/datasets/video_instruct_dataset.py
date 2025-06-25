@@ -217,38 +217,6 @@ class Video_Instruct_Dataset(BaseDataset):
                 assert message['role'] == 'user'
                 part1, part2 = message.get('content').split("</VIDEO>")
                 sample[flag-1]['content'] = part1 + "</VIDEO>. " + msg.strip() + part2
-        # for message in sample:
-        #     if message.get('role') == 'user':
-        #         video_id_list = self._get_video_id(message.get('content'))
-        #         for v_id in video_id_list:
-        #             video_path = self.vid_2_name[v_id]
-        #             videos, msg = load_video(
-        #                     video_path=video_path,
-        #                     n_frms=self.num_frm,
-        #                     height=self.resize_size,
-        #                     width=self.resize_size,
-        #                     sampling=self.sample_type, return_msg=True,
-        #                 )
-        #             videos = self.eval_transform(videos)
-        #             video_frm_list.append(videos)
-        #             cur_n_frms.append(videos.shape[1]) #统计视频帧数
-        #             # 统计帧的时间戳信息并tokenizer化
-        #             all_timestamp = msg.split('sampled at')[1].replace('seconds.','').strip().split(',')
-        #             all_timestamp = [f'This frame is sampled at {t.strip()} second.' for t in all_timestamp]
-        #             all_timestamp = self.tokenizer(
-        #                 all_timestamp,
-        #                 return_tensors="pt",
-        #                 padding="longest",
-        #                 max_length=32,
-        #                 truncation=True,
-        #             )
-        #             time_message_list.append(all_timestamp)
-                
-        #         if len(video_id_list) == 1:
-        #             part1, part2 = message.get('content').split("</VIDEO>")
-        #             message['content'] = part1 + "</VIDEO>. " + msg.strip() + part2 #对于视频片段检索的user的内容，添加视频帧在哪秒的信息
-        cur_token_len = [self.num_video_query_token * math.ceil(
-                    cur_n_frm / self.stride) if self.stride > 0 else self.num_video_query_token for cur_n_frm in cur_n_frms]
         
         model_input = self.tokenizer.apply_chat_template(sample[:-1], tokenize=False,add_generation_prompt=True)
 
