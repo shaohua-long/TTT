@@ -171,9 +171,11 @@ def main(args):
     len_eval_data = datasets.get_eval_len()
     video_token = model.llama_tokenizer.get_vocab()['<VIDEOTOKEN>']
     all_outputs = []
+    print(len_eval_data)
     for i in tqdm(range(len_eval_data)):
         eval_data = datasets.get_eval_data(i)
         video_frames = eval_data["image"]
+        user_q = eval_data['sentence']
         input_ids = eval_data['text_input'].to('cuda')
         img_embeds_list = []
         for img, timestamp in zip(video_frames, eval_data["timestamps"]):
@@ -216,7 +218,6 @@ def main(args):
         input_emb = inputs_embeds.to('cuda')
         attn_mask = torch.ones(input_emb.shape[0], input_emb.shape[1], device='cuda')
         attn_mask = attn_mask.int()
-        # print(input_emb)
         with torch.no_grad():
             outputs = model.llama_model.generate(
                 inputs_embeds=input_emb.to(torch.float16),
@@ -225,7 +226,7 @@ def main(args):
             )
         output_text = model.llama_tokenizer.batch_decode(outputs, skip_special_tokens=True)[0]
         logger.info(output_text)
-        all_outputs.append(output_text)
+        all_outputs.append({'user_q':user_q,'output':output_text})
     save_result(run_cfg.output_dir, all_outputs)
 
 

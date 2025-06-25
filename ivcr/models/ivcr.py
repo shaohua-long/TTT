@@ -15,19 +15,12 @@ from sklearn.metrics import mean_squared_error
 from ivcr.common.registry import registry
 from ivcr.models.blip2 import Blip2Base, disabled_train
 from transformers import AutoModelForCausalLM
-# from ivcr.models.Qformer import BertEncoder
 from transformers import LlamaTokenizer, BertConfig
-# from transformers.models.bert.modeling_bert import BertEncoder
 import einops
 import copy
 from ivcr.models.Qformer import BertConfig, BertLMHeadModel
-# from vllm import LLM
 import sys
 from ivcr.conversation.conversation_video_batch import StoppingCriteriaSub
-# from ivcr.common.constant import DEFAULT_IMAGE_PATCH_TOKEN,VIDEO_INDEX_FIRST,VIDEO_INDEX_SECOND,VIDEO_INDEX_THIRD,VIDEO_INDEX_FOUR,VIDEO_INDEX_FIVE,\
-# VIDEO_INDEX_SIX,VIDEO_INDEX_SEVEN,VIDEO_INDEX_EIGHT,VIDEO_INDEX_NINE,VIDEO_INDEX_TEN,DEFAULT_VIDEO_START_TOKEN,DEFAULT_VIDEO_END_TOKEN
-
-# from flamingo_pytorch import PerceiverResampler
 
 
 

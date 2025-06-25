@@ -49,6 +49,7 @@ def extract_video_numbers_first_only(text):
         return int(match.group(1))
     return None
 
+
 def cal_acc_retrieval(pre_path, gt_path):
     pre_data = read(pre_path)
     gt_data = read(gt_path)

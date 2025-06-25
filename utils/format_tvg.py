@@ -44,7 +44,7 @@ def extract_time(paragraph):
     timestamps = []
     # Check for The given query happens in m - n (seconds)
     patterns = [
-        r"(\d+\.*\d*)\s*-\s*(\d+\.*\d*)"
+        r"(\d+\.*\d*)s?\s*-\s*(\d+\.*\d*)s?"
     ]
     
     for time_pattern in patterns:

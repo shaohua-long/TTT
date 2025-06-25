@@ -253,8 +253,10 @@ class Video_Instruct_Dataset(BaseDataset):
         model_input = self.tokenizer.apply_chat_template(sample[:-1], tokenize=False,add_generation_prompt=True)
 
         input_ids = self.tokenizer([model_input],return_tensors = "pt",add_special_tokens=False).input_ids
-        # labels = get_label(input_ids, cur_token_len,self.tokenizer)
+        sentence = sample[-2]['content']
+        assert sample[-2]['role'] == 'user'
         return {
+            "sentence": sentence,
             "image": video_frm_list,
             "text_input": input_ids[0],
             "timestamps": time_message_list,
