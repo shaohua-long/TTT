@@ -23,8 +23,6 @@ from ivcr.processors import transforms_video, AlproVideoTrainProcessor,AlproVide
 from torchvision import transforms
 from ivcr.processors.video_processor import ToTHWC, ToUint8, load_video
 from ivcr.conversation.conversation_video import Conversation, SeparatorStyle
-# from ivcr.common.constant import DEFAULT_IMAGE_PATCH_TOKEN,VIDEO_INDEX_FIRST,VIDEO_INDEX_SECOND,VIDEO_INDEX_THIRD,VIDEO_INDEX_FOUR,VIDEO_INDEX_FIVE,\
-#     VIDEO_INDEX_SIX,VIDEO_INDEX_SEVEN,VIDEO_INDEX_EIGHT,VIDEO_INDEX_NINE,VIDEO_INDEX_TEN,DEFAULT_VIDEO_START_TOKEN,DEFAULT_VIDEO_END_TOKEN
 
 video_conversation = Conversation(
     system="",
@@ -349,55 +347,12 @@ class Video_Instruct_Dataset(BaseDataset):
                 assert message['role'] == 'user'
                 part1, part2 = message.get('content').split("</VIDEO>")
                 sample[flag-1]['content'] = part1 + "</VIDEO>. " + msg.strip() + part2
-        # for idx,vp_message in enumerate(new_sample):
-        #     # if message.get('role') == 'user':  
-        # # video_id_list = self._get_video_id(message.get('content'))
-        # # video_id_list = sample['candidate_video']
-        #     video_id_list = vp_message
-        #     for v_id in video_id_list:
-        #         # video_path = self.vid_2_name[v_id]
-        #         video_path = v_id
-        #         # dataset_name, video_name = self._get_dataset_name_video_name(video_path)
-        #         # image_description = self.description_data[dataset_name][video_name]  #尝试给每一张图片添加描述
-        #         videos, msg = load_video(
-        #                 video_path=video_path,
-        #                 n_frms=self.num_frm,
-        #                 height=self.resize_size,
-        #                 width=self.resize_size,
-        #                 sampling=self.sample_type, return_msg=True
-        #             )
-        #         videos = self.transform(videos)
-        #         video_frm_list.append(videos)
-        #         cur_n_frms.append(videos.shape[1]) #统计视频帧数
-        #                 # 统计帧的时间戳信息并tokenizer化
-        #         all_timestamp = msg.split('sampled at')[1].replace('seconds.','').strip().split(',')
-        #         all_timestamp = [f'This frame is sampled at {t.strip()} second.' for t in all_timestamp]
-
-        #         all_timestamp = self.tokenizer(
-        #             all_timestamp,
-        #             return_tensors="pt",
-        #             padding="longest",
-        #             max_length=32,
-        #             truncation=True,
-        #         )
-
-        #         time_message_list.append(all_timestamp)
-            # if message.get('role') == 'user':
-            # 通过video path 文件来推断对话位置
-            # flag = (idx+1)*2
-            # message = sample[flag-1]
-            # if len(video_id_list) == 1 and message.get('role') == 'user':
-            #     part1, part2 = message.get('content').split("</VIDEO>")
-            #     message['content'] = part1 + "</VIDEO>. " + msg.strip() + part2 #对于视频片段检索的user的内容，添加视频帧在哪秒的信息
         cur_token_len = [self.num_video_query_token * math.ceil(
                     cur_n_frm / self.stride) if self.stride > 0 else self.num_video_query_token for cur_n_frm in cur_n_frms]
         model_input = self.tokenizer.apply_chat_template(sample, tokenize=False,add_generation_prompt=False)
         input_ids = self.tokenizer([model_input],return_tensors = "pt",add_special_tokens=False).input_ids
-        # print("tokenizer的特殊token")
-        # print(self.tokenizer.special_tokens_map)
         labels,length = get_label(input_ids, cur_token_len,self.tokenizer)
         flag_content = sample[-1].get('content')
-        # target_vid = self._get_video_num(flag_content)
         video_gt_index = self.get_gt_index(sample)
         return {
             "image": video_frm_list,
@@ -406,7 +361,6 @@ class Video_Instruct_Dataset(BaseDataset):
             "length": length,
             "timestamps": time_message_list,
             "gt_value":video_gt_index,
-            # 'target_vid':target_vid
         }
     def __len__(self):
         return len(self.messages_list)

@@ -17,9 +17,6 @@ def extract_time(paragraph):
     # Split text into sentences based on common delimiters
     sentences = re.split(r'[!?\n]', paragraph)
     
-    # Keywords that might indicate the presence of time information
-    # keywords = ["starts", "ends", "happens in", "start time", "end time", "start", "end", "happen"]
-    # filter sentences by keywords
     candidates = []
     for sentence in sentences:
         # If sentence contains one of the keywords
@@ -39,10 +36,6 @@ def extract_time(paragraph):
 
     if len(sentences) == 0:
         return []
-    # check for other formats e.g.:
-    # 1 .Starting time: 0.8 seconds
-    # Ending time: 1.1 seconds
-    # 2. The start time for this event is 0 seconds, and the end time is 12 seconds.
     if len(timestamps) == 0:
         times = []
         time_regex = re.compile(r'\b(\d+\.\d+\b|\b\d+)\b') # time formats (e.g., 18, 18.5)
@@ -53,8 +46,6 @@ def extract_time(paragraph):
                 times.append(time_in_sec)
         times = times[:len(times)//2*2]
         timestamps = [(times[i], times[i+1]) for i in range(0, len(times), 2)]
-    # Check for  examples like:
-    # 3. The event 'person flipped the light switch near the door' starts at 00:00:18 and ends at 00:00:23.
     if len(timestamps) == 0:
         times = []
         time_regex = re.compile(r'\b((\d{1,2}:\d{2}:\d{2}))\b') # time formats (e.g., 18:00, 00:18:05)
@@ -84,10 +75,6 @@ def extract_time(paragraph):
         results = results[:1]
     if results == []:
         results = [[0,0]]
-        # print(paragraph)
-        # sum+=1
-        # print(sum)
-        # print('this')
     return results
 
 def read_json(path):
@@ -208,15 +195,10 @@ def cal_reslut(pre_data,gt_data,all_data):
                     reslut['vr']['all'] += 1
                 elif conv['from'] == 'gpt' and conv['gt_se'] != [-1, -1]:
                     reslut['vmr']['all'] += 1
-    # print(f"right: {reslut['vr']['right']}")
-    # print(f"all:{reslut['vr']['all']}")
     reslut['vr']['right'] = reslut['vr']['right']/reslut['vr']['all']
     reslut['vmr']['r3'] = reslut['vmr']['r3']/reslut['vmr']['all']
     reslut['vmr']['r5'] = reslut['vmr']['r5']/reslut['vmr']['all']
     reslut['vmr']['r7'] = reslut['vmr']['r7']/reslut['vmr']['all']
-    # print(f'count:{count}')
-    # print(f"tongji:{tongji}")
-    # print(f"jieguo: {jieguo}")
     return reslut
 
 def find_sentence(user_q, pre_data):
@@ -270,9 +252,9 @@ def cal_multi_reslut(pre_data,all_data):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("--pred_file", type=str, default="/home/longshaohua/IVCR_Result/Eval_Result/2025_06_16_21_21/2/result_new.json")
-    parser.add_argument('--gt_file', type=str, default='/home/longshaohua/Dataset/use_xpool_top10/IVCR_no_type0_no_zero_dialogues_test_up7_new.json')
-    parser.add_argument('--all_file',type=str,default='/home/longshaohua/Dataset/use_xpool_top10/IVCR-200K_new.json')
+    parser.add_argument("--pred_file", type=str, default="./result.json")
+    parser.add_argument('--gt_file', type=str, default='./IVCR_no_type0_no_zero_dialogues_test_7.json')
+    parser.add_argument('--all_file',type=str,default='./IVCR-200K.json')
     parser.add_argument('--sample', action='store_true', default=False)
     args = parser.parse_args()
     '''

@@ -286,10 +286,6 @@ class IVCR(Blip2Base):
                 timestamps_attention_mask = timestamp["attention_mask"].to(device)
                 query_atts = torch.ones(query_tokens.size()[:-1], dtype=torch.long).to(image.device)
                 Qformer_atts = torch.cat([query_atts, timestamps_attention_mask], dim=1)
-                # print(f"timestamps_input_ids: {timestamps_input_ids.shape}")
-                # print(f"Qformer_atts:{Qformer_atts.shape}")
-                # print(f"image_embeds:{image_embeds.shape}")
-                # print(f"image_atts:{image_atts.shape}")
                 query_output = self.Qformer.bert(
                     timestamps_input_ids,
                     attention_mask=Qformer_atts,
@@ -447,35 +443,15 @@ class IVCR(Blip2Base):
         inputs_embeds = torch.stack(new_input_embeds, dim=0)
         targets = samples['labels']
         attention_mask = samples['attention_mask']
-        # if flag==3:
-        #     length = samples['length'][0]
-        #     all_length = inputs_embeds.shape[1]
-        #     inputs_embed = inputs_embeds[:,:(all_length-length),:]
-        #     eval_output = self.llama_model.generate(
-        #         inputs_embeds = inputs_embed,
-        #         temperature=0.8,
-        #         do_sample=True,
-        #         top_p=0.8
-        #     )
-        #     logger = logging.getLogger('ivcr')
-        #     model_out = self.llama_tokenizer.batch_decode(eval_output[:,all_length-1:],skip_special_tokens=True)[0]
-        #     logger.info("验证输出:")
-        #     logger.info(model_out)
-        #     return model_out
-        # else:
         if inputs_embeds.shape[1] != targets.shape[1]:
             print(inputs_embeds.shape)
             print(targets.shape)
             print(input_ids.shape)
             test_output = self.llama_tokenizer.decode(input_ids,skip_special_tokens=True)
             print(test_output)
-        # print(f"attention_mask的形状{attention_mask.shape}")
-        # print(f"inputs_embeds的形状{inputs_embeds.shape}")
-        # print(f"target的形状{targets.shape}")
         with self.maybe_autocast():
             outputs = self.llama_model(
                 inputs_embeds=inputs_embeds, 
-                # attention_mask=attention_mask,
                 return_dict=True,
                 labels=targets,
             )
@@ -491,7 +467,6 @@ class IVCR(Blip2Base):
                 pre_text = pre_text[0]
                 first_part = pre_text.split('.')[0]
                 if len(token_pos_list) == 1:
-                # if "video moment retrieval" in first_part:
                     pre_temporal = extract_time(pre_text)
                     gt_temporal = samples['gt_value'][0]
                     if pre_temporal == []:
@@ -501,7 +476,6 @@ class IVCR(Blip2Base):
                     else:
                         iou_loss = 1.
                 elif len(token_pos_list) == 10:
-                # elif "video retrieval" in first_part:
                     iou_loss = 1.
                     second_part = pre_text.split('.')[1]
                     index = find_number(second_part)-1
@@ -510,9 +484,7 @@ class IVCR(Blip2Base):
                         pre_index[0][index] = 10
                         gt_index = samples['gt_value']
                         gt_index[0] = gt_index[0]-1
-                        # index_loss = mean_squared_error([index],[gt_index])
                         gt = torch.tensor(gt_index)
-                        # index_loss = torch.from_numpy(np.array([index_loss])).to('cuda')
                         index_loss = self.cross_fn(pre_index,gt)
                     else:
                         index_loss = 0.
@@ -522,141 +494,6 @@ class IVCR(Blip2Base):
             else:
                 loss = outputs.loss
                 return {"loss": loss}
-                #new loss
-                # logits = outputs.logits
-                # logits = logits[..., :-1, :].contiguous()
-                # labels = targets[..., 1:].contiguous()
-                # log_probs = -nn.functional.log_softmax(logits, dim=-1)
-                # if labels.dim() == log_probs.dim() - 1:
-                #     labels = labels.unsqueeze(-1)
-                # ignore_index = -100
-                # padding_mask = labels.eq(ignore_index)
-                # labels = torch.clamp(labels, min=0)
-                # nll_loss = log_probs.gather(dim=-1, index=labels)
-                # nll_loss.masked_fill_(padding_mask, 0.0)
-                # all_labels = ['1','2','3','4','5']
-                # quanzhong = [10.0, 5.0, 3.0, 2.0, 1.5]
-                # wrong_labels = [i for i in all_labels if i!=samples['target_vid'][0]]
-
-                # # print(f"wrong_labels:{samples['target_vid'][0]}")
-                # # print(f"labels:{labels[:,-25:,:]}")
-
-                # weights = torch.ones_like(labels)
-                # for i, id in enumerate(samples['target_vid'][0]):
-                #     target_id_tokens =  self.llama_tokenizer(id, add_special_tokens=False).input_ids
-                #     target_mask = torch.isin(labels, torch.tensor(target_id_tokens[-1], device=labels.device))
-                #     weights = torch.where(target_mask, quanzhong[i], weights)
-
-                # # #  获取目标ID的所有token
-                # # target_id_tokens = self.llama_tokenizer(samples['target_vid'][0], add_special_tokens=False).input_ids  # 示例ID
-                # # wrong_id_tokens = [self.llama_tokenizer(vid,add_special_tokens=False).input_ids for vid in wrong_labels]
-                # # print(f"wrong_id_tokens :{wrong_id_tokens}")
-                # # print(f"label:{labels[:,]}")
-                
-                # # # 创建目标ID的权重掩码
-
-                # # target_mask = torch.isin(labels, torch.tensor(target_id_tokens, device=labels.device))
-                # # weights = torch.where(target_mask, 10.0, weights)
-                # # for vid in wrong_id_tokens:
-                # #     wrong_mask = torch.isin(labels, torch.tensor(vid, device=labels.device))
-                # #     weights = torch.where(wrong_mask,5.0, weights)
-
-                # # print(weights[:,-25:,:])
-                # weights = weights.masked_fill(padding_mask, 0.0)
-                # nll_loss = nll_loss * weights
-
-                # batch_size, seq_length = labels.size()[:2]
-                # weights = torch.zeros_like(labels, dtype=torch.float, device=logits.device)
-                # # weights = torch.ones_like(labels, dtype=torch.float, device=logits.device)
-                # for i in range(batch_size):
-                # # Find the first non-padding index
-                #     non_pad_idx = (labels[i,:,0] != 0).nonzero(as_tuple=True)[0]
-                #     start_idx = non_pad_idx[0].item()
-                #     rank = 1
-                #     for j in range(start_idx, seq_length):
-                #         if labels[i,j,0].item() == 1405: # '>'
-                #             weights[i, j, 0] = 1
-                #             rank += 1
-                #         else:
-                #             weights[i, j, 0] = (1 / math.log2(rank + 1) + 1)
-                # weights = weights.masked_fill(padding_mask, 0.0)
-                # nll_loss = nll_loss * weights
-                
-                # num_active_elements = padding_mask.numel() - padding_mask.long().sum()
-                # loss = nll_loss.sum() / num_active_elements
-                # print(f"loss:{loss}, weights:{weights[:,-30:,:]}, num_active_elements:{num_active_elements},target_id_tokens:{target_id_tokens}, label:{targets.shape}")
-                loss = outputs.loss
-                # print(f"loss:{loss}     targets:{targets[:,-22:]}")
-
-                logger = logging.getLogger('ivcr')
-                indice = torch.where(targets[0]==-100)
-                end_index = indice[0].shape
-                end_index = end_index[0]
-                pre_logits = outputs.logits
-                pre_logits = pre_logits.argmax(dim=-1)
-                
-                pre_text = self.llama_tokenizer.batch_decode(pre_logits[:,end_index-1:], skip_special_tokens=True)
-                output = pre_text[0]
-                logger.info(output)
-                # logger.info(samples['flag_content'][0])
-                return {"loss":loss}
-                return {"loss":outputs.loss}
-            # if pre_logits.shape[1]<=inputs_embeds.shape[1]:
-                    # print(end_index)
-                    # print(inputs_embeds.shape)
-                    # print(pre_logits.shape)
-                    # print(pre_logits[:,end_index-1:])
-                    # test_output = self.llama_tokenizer.decode(input_ids,skip_special_tokens=True)
-                    # print(test_output)
-
-                    # 1. 强化目标ID的损失
-                # 获取目标ID的所有token
-                # target_id_tokens = self.llama_tokenizer(samples['target_vid'][0], add_special_tokens=False).input_ids  # 示例ID
-                # 创建目标ID的权重掩码
-                # target_mask = torch.isin(labels, torch.tensor(target_id_tokens, device=labels.device))
-                # weights = torch.where(target_mask, gamma_pos, 1.0)
-                # total_loss = nll_loss * weights
-                # total_loss = total_loss.masked_fill(padding_mask, 0.0)
-                """
-                if flag:
-                    indice = torch.where(targets[0]==-100)
-                    end_index = indice[0].shape
-                    end_index = end_index[0]
-                    pre_logits = outputs.logits
-                    pre_logits = pre_logits.argmax(dim=-1)
-                    pre_text = self.llama_tokenizer.batch_decode(pre_logits[:,end_index-1:], skip_special_tokens=True, clean_up_tokenization_spaces=False)
-                    pre_text = pre_text[0]
-                    logger.info(pre_text)
-                    first_part = pre_text.split('.')[0]
-                    if "temporal video grounding" in first_part:
-                        pre_temporal = extract_time(pre_text)
-                        gt_temporal = samples['gt_value'][0]
-                        if pre_temporal == []:
-                            iou_loss = 1.
-                        elif len(pre_temporal[0]) == 2:
-                                iou_loss = iou(pre_temporal[0],gt_temporal)
-                        else:
-                            iou_loss = 1.
-                    elif "video retrieval" in first_part:
-                        iou_loss = 1.
-                        second_part = pre_text.split('.')[1]
-                        index = find_number(second_part)-1
-                        if 0<=index<=9:
-                            pre_index = torch.full((1,10),0.01)
-                            pre_index[0][index] = 10
-                            gt_index = samples['gt_value']
-                            gt_index[0] = gt_index[0]-1
-                            gt = torch.tensor(gt_index)
-                            index_loss = self.cross_fn(pre_index,gt)
-                        else:
-                            index_loss = 0.
-                    loss  = outputs.loss
-                    loss = loss + 0.01*((1-iou_loss) + index_loss)
-                    return {"loss":loss}
-                else:
-                    loss = outputs.loss
-                    return {"loss": loss}
-                """
 
     @classmethod
     def from_config(cls, cfg, tokenizer):
