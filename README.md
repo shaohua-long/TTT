@@ -32,8 +32,9 @@ We introduce <a href="https://drive.google.com/drive/folders/1ScmHPvpZP_BiiibFgz
 #### Enviroment Preparation 
 create a conda environment
 ```
-conda env create -f environment.yml
-conda activate ivcr
+conda create -n envname pyhton=3.11
+conda activate envname
+pip install -r requirements.txt
 ```
 ### checkpoints
 make sure you have obtained the following checkpoints
@@ -60,23 +61,20 @@ git clone https://huggingface.co/ShuhuaiRen/TimeChat-7b
 ```
 
 ## How to Run
+### Data Preprocessing
+```
+download IVCR_200K
+run ./convert_dataset.ipynb 
+```
 ### Tuning
-Using One GPU
 ```
 python train.py --cfg-path ./train_configs/stage2_finetune_IVCR.yaml
 ```
-Using Multiple GPUs(use four gpus as example)
-```
-accelerate launch --num_processes=4 train.py --cfg-path ./train_configs/stage2_finetune_IVCR.yaml
-```
 
 ### Evaluating
-Temporal Video Grounding
 ```
-python evaluate.py --task tvg
+python evaluate.py 
 ```
-
-Video Retrieval
 ```
-python evaluate.py --task format_video 
+python ./metrics/eval.py
 ```
